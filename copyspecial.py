@@ -21,13 +21,14 @@ __author__ = "Joey Brown ft. Google and Coaches"
 
 
 def get_special_paths(dir):
-    files_list = os.listdir(dir)
-    special_files_list = []
-    for files in files_list:
-        searchfile = re.search('_\w+_', file)
-        if searchfile:
-            special_files_list.append(os.path.abspath(file))
-    return special_files_list
+    file_list = []
+    for dir_path, _, filenames in os.walk(dir):
+        for f in filenames:
+            if re.search(r'__\w+__', f):
+                file_list.append(os.path.abspath(os.path.join(dir_path, f)))
+                print(os.path.abspath(os.path.join(dir_path, f)) + '\n')
+        break
+    return file_list
 
 
 def copy_to(paths, dir):
@@ -38,21 +39,24 @@ def copy_to(paths, dir):
 
 
 def zip_to(paths, zip_path):
-    cmd = 'zip -j' + zip_path + ''.join(paths)
-    print "Command I'm going to do: " + cmd
-    status, output = commands.getstatusoutput(cmd)
-    if status:
-        print(output)
-        sys.exit(1)
+    cmd = ['zip', '-j']
+    zip_path = [zip_path]
+    command_list = cmd + zip_path + paths
+    print("Command I'm going to do: ")
+    print(''.join(command_list))
+    try:
+        subprocess.call(command_list)
+    except:
+        subprocess.check_output(command_list)
 
 
 def main():
     # This snippet will help you get started with the argparse module.
     parser = argparse.ArgumentParser()
-    parser.add_argument('dir', help='name of directory to search')
     parser.add_argument('--todir', help='dest dir for special files')
     parser.add_argument('--tozip', help='dest zipfile for special files')
     # TODO need an argument to pick up 'from_dir'
+    parser.add_argument('dir', help='name of directory to search')
     args = parser.parse_args()
 
     # TODO you must write your own code to get the cmdline args.
@@ -61,18 +65,14 @@ def main():
     # Parsing command line arguments is a must-have skill.
     # This is input data validation.  If something is wrong (or missing) with any
     # required args, the general rule is to print a usage message and exit(1).
-    if args.dir == '.':
-        files_to_transfer = get_special_paths(os.getcwd())
 
-        if args.todir:
-            targer_dir = args.todir
-            print targer_dir
-            copy_to(files_to_transfer, targer_dir)
-        if args.tozip:
-            target_zip = args.tozip
-            zip_to(files_to_transfer, target_zip)
-        if len(sys.argv) == 2:
-            print('\n'.join(files_to_transfer))
+    source_dir, to_dir, to_zip = args.dir, args.todir, args.tozip
+    if source_dir:
+        files_list = get_special_paths(source_dir)
+    if source_dir and to_dir:
+        copy_to(files_list, to_dir)
+    if source_dir and to_zip:
+        zip_to(files_list, to_zip)
 
 
 if __name__ == "__main__":
